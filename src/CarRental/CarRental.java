@@ -1,5 +1,4 @@
 package CarRental;
-
 import java.util.Scanner;
 
 public class CarRental {
@@ -94,26 +93,92 @@ public class CarRental {
 
     private static class CarRentalService {
         private final Car[] cars;
-        private int newKm;
 
         public CarRentalService(Car[] cars) {
             this.cars = cars;
         }
 
         public void displayAllCars() {
+            System.out.println("\nAvailable Cars:");
+            System.out.println("--------------------");
+            for (Car car : cars) {
+                car.display();
+            }
+            System.out.println("--------------------");
         }
 
-        public boolean rentCar(String ignoredPlateNumber) {
+        public boolean rentCar(String plateNumber) {
+            for (Car car : cars) {
+                if (car.getPlateNumber().equalsIgnoreCase(plateNumber)) {
+                    return car.rent();
+                }
+            }
             return false;
         }
 
         public boolean returnCar(String plateNumber, int newKm) {
-            this.newKm = newKm;
+            for (Car car : cars) {
+                if (car.getPlateNumber().equalsIgnoreCase(plateNumber)) {
+                    return car.returnCar(newKm);
+                }
+            }
             return false;
         }
 
         public Car[] getCars() {
             return cars;
         }
+    }
+}
+
+class Car {
+    private String plateNumber;
+    private String model;
+    private int kilometers;
+    private boolean isRented;
+
+    public Car(String plateNumber, String model, int kilometers) {
+        this.plateNumber = plateNumber;
+        this.model = model;
+        this.kilometers = kilometers;
+        this.isRented = false;
+    }
+
+    public String getPlateNumber() {
+        return plateNumber;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public int getKilometers() {
+        return kilometers;
+    }
+
+    public boolean isRented() {
+        return isRented;
+    }
+
+    public boolean rent() {
+        if (!isRented) {
+            isRented = true;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean returnCar(int newKm) {
+        if (isRented && newKm >= kilometers) {
+            isRented = false;
+            kilometers = newKm;
+            return true;
+        }
+        return false;
+    }
+
+    public void display() {
+        System.out.println("Plate: " + plateNumber + ", Model: " + model +
+                ", KM: " + kilometers + ", Status: " + (isRented ? "Rented" : "Available"));
     }
 }
