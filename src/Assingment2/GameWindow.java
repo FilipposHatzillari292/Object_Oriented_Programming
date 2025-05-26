@@ -2,64 +2,128 @@ package Assingment2;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 
-public class GameWindow extends JFrame {
-    private HangmanGame game;
-    private JLabel wordLabel, statusLabel;
-    private JPanel lettersPanel;
-    private String username;
+class GameWindow extends JFrame {
+    private User user;
     private DatabaseManager db;
+    private String word;
+    private char[] display;
+    private int wrongAttempts = 0;
+    private JLabel wordLabel, messageLabel;
+    private JTextField guessField;
+    private JButton guessBtn, replayBtn, logoutBtn, leaderboardBtn;
 
-    public GameWindow(String username, DatabaseManager db) {
-        this.username = username;
+    public GameWindow(User user, DatabaseManager db) {
+        this.user = user;
         this.db = db;
+        setupUI();
+        startGame();
+    }
+
+    private void setupUI() {
         setTitle("Hangman Game");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400, 300);
+        setLayout(new FlowLayout());
 
-        try {
-            String word = WordAPIClient.getRandomWord();
-            game = new HangmanGame(word);
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
+        wordLabel = new JLabel();
+        wordLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        add(wordLabel);
 
-        wordLabel = new JLabel(game.getDisplayedWord(), SwingConstants.CENTER);
-        statusLabel = new JLabel("Wrong guesses: 0", SwingConstants.CENTER);
+        messageLabel = new JLabel("Enter a letter:");
+        add(messageLabel);
 
-        lettersPanel = new JPanel(new GridLayout(3, 9));
-        for (char c = 'a'; c <= 'z'; c++) {
-            JButton btn = new JButton(String.valueOf(c));
-            char finalC=c;
-            btn.addActionListener( e -> guessLetter( finalC, btn));
-            lettersPanel.add(btn);
-        }
+        guessField = new JTextField(1);
+        add(guessField);
 
-        add(wordLabel, BorderLayout.NORTH);
-        add(statusLabel, BorderLayout.CENTER);
-        add(lettersPanel, BorderLayout.SOUTH);
+        guessBtn = new JButton("Guess");
+        add(guessBtn);
+
+        replayBtn = new JButton("Play Again");
+        replayBtn.setEnabled(false);
+        add(replayBtn);
+
+        logoutBtn = new JButton("Logout");
+        add(logoutBtn);
+
+        leaderboardBtn = new JButton("Leaderboard");
+        add(leaderboardBtn);
+
+        guessBtn.addActionListener(e -> makeGuess());
+        replayBtn.addActionListener(e -> startGame());
+        logoutBtn.addActionListener(e -> logout());
+        leaderboardBtn.addActionListener(e -> new LeaderboardWindow(db));
+
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setVisible(true);
     }
 
-    private void guessLetter(char c, JButton btn) {
-        btn.setEnabled(false);
-        game.guess(c);
-        wordLabel.setText(game.getDisplayedWord());
-        statusLabel.setText("Wrong guesses: " + game.wrongGuesses);
+    private void startGame() {
+        word = APIClient.getRandomWord().toLowerCase();
+        display = new char[word.length()];
+        for (int i = 0; i < word.length(); i++) {
+            display[i] = (i == 0 || i == word.length() - 1) ? word.charAt(i) : '-';
+        }
+        wrongAttempts = 0;
+        updateDisplay();
+        guessField.setText("");
+        guessField.setEnabled(true);
+        guessBtn.setEnabled(true);
+        replayBtn.setEnabled(false);
+    }
 
-        if (game.isGameOver()) {
-            String message = game.isWon() ? "You won!" : "You lost!";
-            JOptionPane.showMessageDialog(this, message);
-            try {
-                db.updateScore(username, game.isWon() ? 10 : 0);
-            } catch (Exception e) {
-                e.printStackTrace();
+    private void updateDisplay() {
+        wordLabel.setText(String.valueOf(display));
+    }
+
+    private void makeGuess() {
+        String guessText = guessField.getText().toLowerCase();
+        if (guessText.length() != 1 || !Character.isLetter(guessText.charAt(0))) {
+            JOptionPane.showMessageDialog(this, "Please enter a single letter.");
+            return;
+        }
+
+        char guess = guessText.charAt(0);
+        boolean correct = false;
+
+        for (int i = 1; i < word.length() - 1; i++) {
+            if (word.charAt(i) == guess) {
+                display[i] = guess;
+                correct = true;
             }
-            dispose();
-            new LoginWindow();
+        }
+
+        if (!correct) {
+            wrongAttempts++;
+        }
+
+        updateDisplay();
+        checkGameStatus();
+        guessField.setText("");
+    }
+
+    private void checkGameStatus() {
+        if (String.valueOf(display).equals(word)) {
+            JOptionPane.showMessageDialog(this, "You won!");
+            user.addScore(10);
+            db.updateScore(user.getUsername(), 10);
+            endGame();
+        } else if (wrongAttempts >= 6) {
+            JOptionPane.showMessageDialog(this, "You lost! The word was: " + word);
+            endGame();
         }
     }
-}
 
+    private void endGame() {
+        guessField.setEnabled(false);
+        guessBtn.setEnabled(false);
+        replayBtn.setEnabled(true);
+    }
+
+    private void logout() {
+        db.updateScore(user.getUsername(), user.getScore());
+        new LoginWindow();
+        dispose();
+    }
+}
 
