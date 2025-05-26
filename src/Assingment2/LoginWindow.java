@@ -1,66 +1,71 @@
-package Assingment2;
+package AssingmentTesting;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.*;
 
 public class LoginWindow extends JFrame {
     private JTextField usernameField;
     private JPasswordField passwordField;
-    private DatabaseManager db = new DatabaseManager();
+    private JButton loginBtn, registerBtn;
+    private DatabaseManager db;
 
     public LoginWindow() {
-        setTitle("Login");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        db = new DatabaseManager();
+
+        setTitle("Hangman - Login");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(300, 200);
-        setLayout(new GridLayout(4, 1));
+        setLayout(null);
+
+        JLabel userLabel = new JLabel("Username:");
+        userLabel.setBounds(30, 30, 80, 25);
+        add(userLabel);
 
         usernameField = new JTextField();
-        passwordField = new JPasswordField();
-        JButton loginButton = new JButton("Login");
-        JButton registerButton = new JButton("Register");
-
-        add(new JLabel("Username"));
+        usernameField.setBounds(120, 30, 130, 25);
         add(usernameField);
-        add(new JLabel("Password"));
+
+        JLabel passLabel = new JLabel("Password:");
+        passLabel.setBounds(30, 70, 80, 25);
+        add(passLabel);
+
+        passwordField = new JPasswordField();
+        passwordField.setBounds(120, 70, 130, 25);
         add(passwordField);
-        add(loginButton);
-        add(registerButton);
 
-        loginButton.addActionListener(e -> login());
-        registerButton.addActionListener(e -> register());
+        loginBtn = new JButton("Login");
+        loginBtn.setBounds(30, 110, 100, 25);
+        add(loginBtn);
 
-        try {
-            db.connect();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        registerBtn = new JButton("Register");
+        registerBtn.setBounds(150, 110, 100, 25);
+        add(registerBtn);
+
+        loginBtn.addActionListener(e -> login());
+        registerBtn.addActionListener(e -> register());
 
         setVisible(true);
     }
 
     private void login() {
-        try {
-            if (db.loginUser(usernameField.getText(), new String(passwordField.getPassword()))) {
-                dispose();
-                new GameWindow(usernameField.getText(), db);
-            } else {
-                JOptionPane.showMessageDialog(this, "Login failed");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        String user = usernameField.getText();
+        String pass = new String(passwordField.getPassword());
+        if (db.login(user, pass)) {
+            JOptionPane.showMessageDialog(this, "Login Successful!");
+            new GameWindow(new User(user, pass, 0), db);
+            dispose();
+        } else {
+            JOptionPane.showMessageDialog(this, "Invalid credentials!");
         }
     }
 
     private void register() {
-        try {
-            if (db.registerUser(usernameField.getText(), new String(passwordField.getPassword()))) {
-                JOptionPane.showMessageDialog(this, "Registration successful");
-            } else {
-                JOptionPane.showMessageDialog(this, "Username taken");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        String user = usernameField.getText();
+        String pass = new String(passwordField.getPassword());
+        if (db.register(user, pass)) {
+            JOptionPane.showMessageDialog(this, "Registered! Now log in.");
+        } else {
+            JOptionPane.showMessageDialog(this, "Registration failed. User may already exist.");
         }
     }
 }
